@@ -1,0 +1,52 @@
+_target_: src.datamodules.cifar10_datamodule.CIFAR10DataModule
+data_dir: ${paths.data_dir}
+batch_size: 128
+train_val_test_split: [40_000, 10_000]
+num_workers: 8
+pin_memory: False
+
+transforms:
+  train_transform:
+    _target_: albumentations.Compose
+    _recursive_: True
+    transforms: 
+    - _target_: albumentations.PadIfNeeded
+      min_height: 36
+      min_width: 36
+    - _target_: albumentations.ShiftScaleRotate
+      shift_limit: 0.05
+      scale_limit: 0.05
+      rotate_limit: 15
+      p: 0.5
+    - _target_: albumentations.RandomCrop
+      height: 32
+      width: 32
+    - _target_: albumentations.RGBShift
+      r_shift_limit: 15
+      g_shift_limit: 15
+      b_shift_limit: 15
+      p: 0.5
+    - _target_: albumentations.RandomBrightnessContrast
+      p: 0.5
+    - _target_: albumentations.Normalize
+      mean: [0.4914, 0.4822, 0.4465]
+      std: [0.247, 0.243, 0.261]
+    - _target_: albumentations.pytorch.ToTensorV2
+
+  val_transform:
+    _target_: albumentations.Compose
+    _recursive_: True
+    transforms: 
+    - _target_: albumentations.Normalize
+      mean: [0.4914, 0.4822, 0.4465]
+      std: [0.247, 0.243, 0.261]
+    - _target_: albumentations.pytorch.ToTensorV2
+
+  test_transform:
+    _target_: albumentations.Compose
+    _recursive_: True
+    transforms: 
+    - _target_: albumentations.Normalize
+      mean: [0.4914, 0.4822, 0.4465]
+      std: [0.247, 0.243, 0.261]
+    - _target_: albumentations.pytorch.ToTensorV2

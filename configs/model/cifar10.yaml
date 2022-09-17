@@ -1,0 +1,43 @@
+_target_: src.models.cifar10_module.CIFAR10LitModule
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.001
+  weight_decay: 0.0
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  _partial_: true
+  mode: min
+  factor: 0.1
+  patience: 10
+
+net:
+  _target_: src.models.components.simple_conv_net.SimpleConvNet
+  _recursive_: true
+  fc_block:
+    _target_: src.models.components.simple_conv_net.FCBlock
+    hiddens: [4096, 1024, 512, 10]
+  conv_blocks:
+  - _target_: src.models.components.simple_conv_net.ConvBlock
+    in_channels: 3
+    out_channels: 64
+    kernel_size: 3
+    stride: 1
+    padding: 1
+    pool_size: 2
+  - _target_: src.models.components.simple_conv_net.ConvBlock
+    in_channels: 64
+    out_channels: 128
+    kernel_size: 3
+    stride: 1
+    padding: 1
+    pool_size: 2
+  - _target_: src.models.components.simple_conv_net.ConvBlock
+    in_channels: 128
+    out_channels: 256
+    kernel_size: 3
+    stride: 1
+    padding: 1
+    pool_size: 2

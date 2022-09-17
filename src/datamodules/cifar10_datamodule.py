@@ -1,13 +1,14 @@
+from turtle import down
 from typing import Any, Dict, Optional, Tuple
 
 import torch
 from pytorch_lightning import LightningDataModule
-from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
-from torchvision.datasets import MNIST
-from torchvision.transforms import transforms
+from torch.utils.data import DataLoader, Dataset, random_split
+
+from src.datamodules.components.cifar10_dataset import CIFAR10Dataset
 
 
-class MNISTDataModule(LightningDataModule):
+class CIFAR10DataModule(LightningDataModule):
     """Example of LightningDataModule for MNIST dataset.
 
     A DataModule implements 5 key methods:
@@ -42,6 +43,7 @@ class MNISTDataModule(LightningDataModule):
         batch_size: int = 64,
         num_workers: int = 0,
         pin_memory: bool = False,
+        transforms = None
     ):
         super().__init__()
 
@@ -50,9 +52,12 @@ class MNISTDataModule(LightningDataModule):
         self.save_hyperparameters(logger=False)
 
         # data transformations
-        self.transforms = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-        )
+        if transforms is None:
+            self.train_transform = None
+            self.test_transform = None
+        else:
+            self.train_transform = transforms.train_transform
+            self.test_transform = transforms.test_transform
 
         self.data_train: Optional[Dataset] = None
         self.data_val: Optional[Dataset] = None
@@ -67,8 +72,8 @@ class MNISTDataModule(LightningDataModule):
 
         Do not use it to assign state (self.x = y).
         """
-        MNIST(self.hparams.data_dir, train=True, download=True)
-        MNIST(self.hparams.data_dir, train=False, download=True)
+        CIFAR10Dataset(self.hparams.data_dir, train=True, download=True)
+        CIFAR10Dataset(self.hparams.data_dir, train=False, download=True)
 
     def setup(self, stage: Optional[str] = None):
         """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`.
@@ -78,11 +83,10 @@ class MNISTDataModule(LightningDataModule):
         """
         # load and split datasets only if not loaded already
         if not self.data_train and not self.data_val and not self.data_test:
-            trainset = MNIST(self.hparams.data_dir, train=True, transform=self.transforms)
-            testset = MNIST(self.hparams.data_dir, train=False, transform=self.transforms)
-            dataset = ConcatDataset(datasets=[trainset, testset])
-            self.data_train, self.data_val, self.data_test = random_split(
-                dataset=dataset,
+            trainset = CIFAR10Dataset(self.hparams.data_dir, train=True, transform=self.train_transform)
+            self.data_test = CIFAR10Dataset(self.hparams.data_dir, train=False, transform=self.test_transform)
+            self.data_train, self.data_val = random_split(
+                dataset=trainset,
                 lengths=self.hparams.train_val_test_split,
                 generator=torch.Generator().manual_seed(42),
             )
@@ -133,7 +137,11 @@ if __name__ == "__main__":
     import pyrootutils
 
     root = pyrootutils.setup_root(__file__, pythonpath=True)
-    cfg = omegaconf.OmegaConf.load(root / "configs" / "datamodule" / "mnist.yaml")
+    cfg = omegaconf.OmegaConf.load(root / "configs" / "datamodule" / "cifar10.yaml")
     cfg.data_dir = str(root / "data")
     print(cfg)
-    _ = hydra.utils.instantiate(cfg)
+    dm = hydra.utils.instantiate(cfg)
+    dm.prepare_data()
+    dm.setup()
+    image, label = dm.data_train[0]
+    print(image.shape, label)
