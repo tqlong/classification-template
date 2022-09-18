@@ -17,8 +17,9 @@ class PascalVOCDataset(VOCSegmentation):
             image = transformed['image']
             mask = transformed['mask']
             # print("transformed", image.shape, mask.shape, type(image), type(mask), image.dtype, mask.dtype)
-        
+
         return image, mask
+
 
 if __name__ == "__main__":
     import pyrootutils
@@ -26,7 +27,8 @@ if __name__ == "__main__":
 
     root = pyrootutils.setup_root(__file__, pythonpath=True)
 
-    ds = PascalVOCDataset(root / "data", image_set="trainval", download=False, transform=None)
+    ds = PascalVOCDataset(root / "data", image_set="trainval",
+                          download=False, transform=None)
     image, mask = ds[0]
     # print(len(ds))
     print(np.max(mask), np.unique(mask), mask.shape)

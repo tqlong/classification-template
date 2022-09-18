@@ -8,6 +8,7 @@ import segmentation_models_pytorch as smp
 
 logging.getLogger('PIL').setLevel(logging.WARNING)
 
+
 class SegmentationLitModule(LightningModule):
     """Example of LightningModule for MNIST classification.
 
@@ -41,7 +42,7 @@ class SegmentationLitModule(LightningModule):
 
         # loss function
         self.criterion = smp.losses.DiceLoss(
-            mode=smp.losses.MULTICLASS_MODE, 
+            mode=smp.losses.MULTICLASS_MODE,
             from_logits=True,
             ignore_index=ignore_index
         )
@@ -74,19 +75,26 @@ class SegmentationLitModule(LightningModule):
         preds = torch.argmax(logits, dim=1)
         return loss, preds, y
 
+    def get_iou(self, preds, targets):
+        tp, fp, fn, tn = smp.metrics.get_stats(
+            preds, targets, mode='multiclass',
+            ignore_index=self.hparams.ignore_index, num_classes=self.hparams.num_classes)
+        iou_score = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro")
+        return iou_score
+
     def training_step(self, batch: Any, batch_idx: int):
         loss, preds, targets = self.step(batch)
 
         # update and log metrics
         self.train_loss(loss)
-        tp, fp, fn, tn = smp.metrics.get_stats(
-            preds, targets, mode='multiclass', 
-            ignore_index=self.hparams.ignore_index, num_classes=self.hparams.num_classes)
-        iou_score = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro")
 
+        iou_score = self.get_iou(preds, targets)
         self.train_iou(iou_score)
-        self.log("train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("train/iou", self.train_iou, on_step=False, on_epoch=True, prog_bar=True)
+
+        self.log("train/loss", self.train_loss,
+                 on_step=False, on_epoch=True, prog_bar=True)
+        self.log("train/iou", self.train_iou, on_step=False,
+                 on_epoch=True, prog_bar=True)
 
         # we can return here dict with any tensors
         # and then read it in some callback or in `training_epoch_end()` below
@@ -102,13 +110,14 @@ class SegmentationLitModule(LightningModule):
 
         # update and log metrics
         self.val_loss(loss)
-        tp, fp, fn, tn = smp.metrics.get_stats(
-            preds, targets, mode='multiclass', 
-            ignore_index=self.hparams.ignore_index, num_classes=self.hparams.num_classes)
-        iou_score = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro")
+
+        iou_score = self.get_iou(preds, targets)
         self.val_iou(iou_score)
-        self.log("val/loss", self.val_loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("val/iou", self.val_iou, on_step=False, on_epoch=True, prog_bar=True)
+
+        self.log("val/loss", self.val_loss, on_step=False,
+                 on_epoch=True, prog_bar=True)
+        self.log("val/iou", self.val_iou, on_step=False,
+                 on_epoch=True, prog_bar=True)
 
         return {"loss": loss, "preds": preds, "targets": targets}
 
@@ -124,13 +133,14 @@ class SegmentationLitModule(LightningModule):
 
         # update and log metrics
         self.test_loss(loss)
-        tp, fp, fn, tn = smp.metrics.get_stats(
-            preds, targets, mode='multiclass', 
-            ignore_index=self.hparams.ignore_index, num_classes=self.hparams.num_classes)
-        iou_score = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro")
+
+        iou_score = self.get_iou(preds, targets)
         self.test_iou(iou_score)
-        self.log("test/loss", self.test_loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("test/iou", self.test_iou, on_step=False, on_epoch=True, prog_bar=True)
+
+        self.log("test/loss", self.test_loss, on_step=False,
+                 on_epoch=True, prog_bar=True)
+        self.log("test/iou", self.test_iou, on_step=False,
+                 on_epoch=True, prog_bar=True)
 
         return {"loss": loss, "preds": preds, "targets": targets}
 
@@ -158,36 +168,37 @@ class SegmentationLitModule(LightningModule):
         }
 
 
-import torch.nn.functional as F
-
-
-def dice(y_pred, y_true):
-    y_pred = y_pred.log_softmax(dim=1).exp()
-    bs = y_true.size(0)
-    num_classes = y_pred.size(1)
-    dims = (0, 2)
-
-    y_true = y_true.view(bs, -1)
-    y_pred = y_pred.view(bs, num_classes, -1)
-    y_true = F.one_hot(y_true, num_classes)  # N,H*W -> N,H*W, C
-    y_true = y_true.permute(0, 2, 1)  # N, C, H*W
-    y_true = y_true.type_as(y_pred)
-
-    print(y_pred.shape, y_true.shape, y_pred.dtype, y_true.dtype)
-
 if __name__ == "__main__":
     import hydra
     import omegaconf
     import pyrootutils
     import segmentation_models_pytorch as smp
 
+    import torch.nn.functional as F
+
+    def dice(y_pred, y_true):
+        y_pred = y_pred.log_softmax(dim=1).exp()
+        bs = y_true.size(0)
+        num_classes = y_pred.size(1)
+        dims = (0, 2)
+
+        y_true = y_true.view(bs, -1)
+        y_pred = y_pred.view(bs, num_classes, -1)
+        y_true = F.one_hot(y_true, num_classes)  # N,H*W -> N,H*W, C
+        y_true = y_true.permute(0, 2, 1)  # N, C, H*W
+        y_true = y_true.type_as(y_pred)
+
+        print(y_pred.shape, y_true.shape, y_pred.dtype, y_true.dtype)
+
     root = pyrootutils.setup_root(__file__, pythonpath=True)
-    cfg = omegaconf.OmegaConf.load(root / "configs" / "model" / "unet_resnet.yaml")
+    cfg = omegaconf.OmegaConf.load(
+        root / "configs" / "model" / "unet_resnet.yaml")
     model = hydra.utils.instantiate(cfg)
     x = torch.zeros(10, 3, 320, 320)
     target = torch.zeros(10, 320, 320, dtype=torch.long)
     logit_mask = model(x)
     # dice(logit_mask, target)
     # print("out", logit_mask.shape)
-    loss = smp.losses.DiceLoss(mode=smp.losses.MULTICLASS_MODE, from_logits=True)
+    loss = smp.losses.DiceLoss(
+        mode=smp.losses.MULTICLASS_MODE, from_logits=True)
     print("loss", loss(logit_mask, target))

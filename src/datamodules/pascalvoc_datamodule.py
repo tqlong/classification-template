@@ -43,7 +43,7 @@ class PascalVOCDataModule(LightningDataModule):
         batch_size: int = 64,
         num_workers: int = 0,
         pin_memory: bool = False,
-        transforms = None
+        transforms=None
     ):
         super().__init__()
 
@@ -72,8 +72,10 @@ class PascalVOCDataModule(LightningDataModule):
 
         Do not use it to assign state (self.x = y).
         """
-        PascalVOCDataset(self.hparams.data_dir, image_set="train", download=False)
-        PascalVOCDataset(self.hparams.data_dir, image_set="val", download=False)
+        PascalVOCDataset(self.hparams.data_dir,
+                         image_set="train", download=False)
+        PascalVOCDataset(self.hparams.data_dir,
+                         image_set="val", download=False)
 
     def setup(self, stage: Optional[str] = None):
         """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`.
@@ -83,8 +85,10 @@ class PascalVOCDataModule(LightningDataModule):
         """
         # load and split datasets only if not loaded already
         if not self.data_train and not self.data_val and not self.data_test:
-            trainset = PascalVOCDataset(self.hparams.data_dir, image_set="train", download=False, transform=self.train_transform)
-            self.data_test = PascalVOCDataset(self.hparams.data_dir, image_set="val", download=False, transform=self.test_transform)
+            trainset = PascalVOCDataset(
+                self.hparams.data_dir, image_set="train", download=False, transform=self.train_transform)
+            self.data_test = PascalVOCDataset(
+                self.hparams.data_dir, image_set="val", download=False, transform=self.test_transform)
             self.data_train, self.data_val = random_split(
                 dataset=trainset,
                 lengths=self.hparams.train_val_test_split,
@@ -137,7 +141,8 @@ if __name__ == "__main__":
     import pyrootutils
 
     root = pyrootutils.setup_root(__file__, pythonpath=True)
-    cfg = omegaconf.OmegaConf.load(root / "configs" / "datamodule" / "pascalvoc.yaml")
+    cfg = omegaconf.OmegaConf.load(
+        root / "configs" / "datamodule" / "pascalvoc.yaml")
     cfg.data_dir = str(root / "data")
     print(cfg)
     dm = hydra.utils.instantiate(cfg)
