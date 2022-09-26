@@ -1,0 +1,25 @@
+name: dev
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pytorch
+  - torchvision
+  - torchaudio
+  - cudatoolkit=11.6
+  - pip
+  - pip:
+    - pytorch-lightning
+    - torchmetrics
+    - hydra-core
+    - hydra-colorlog
+    - hydra-optuna-sweeper
+    - pyrootutils
+    - pre-commit
+    - rich
+    - pytest
+    - albumentations
+    - segmentation-models-pytorch
+    - opencv-python

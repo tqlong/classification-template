@@ -1,6 +1,6 @@
 _target_: src.datamodules.pascalvoc_datamodule.PascalVOCDataModule
 data_dir: ${paths.data_dir}
-batch_size: 4
+batch_size: 8
 train_val_test_split: [1000, 464]
 num_workers: 8
 pin_memory: False
